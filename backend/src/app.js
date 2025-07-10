@@ -74,6 +74,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Health check endpoint for deployment monitoring
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    version: require('../../package.json').version || '1.0.0'
+  });
+});
+
 // 404 handler
 app.use(notFound);
 
