@@ -9,19 +9,19 @@
  */
 export const downloadBlob = (blob, filename) => {
   // Check if we're in a browser environment
-  if (typeof window === 'undefined' || typeof globalThis.document === 'undefined') {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
     throw new Error('Download not available in this environment');
   }
 
   const url = window.URL.createObjectURL(blob);
-  const link = globalThis.document.createElement('a');
+  const link = document.createElement('a');
   link.href = url;
   link.setAttribute('download', filename);
-  globalThis.document.body.appendChild(link);
+  document.body.appendChild(link);
   link.click();
   
   // Clean up
-  globalThis.document.body.removeChild(link);
+  document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
 };
 
