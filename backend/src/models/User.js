@@ -110,6 +110,11 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 
 // Check if user can validate documents based on tier limits
 userSchema.methods.canValidate = function() {
+  // Admin users always have unlimited validations
+  if (this.role === 'admin') {
+    return true;
+  }
+  
   if (this.tier === 'free') {
     // Reset counter if it's a new month
     const now = new Date();
@@ -135,6 +140,20 @@ userSchema.methods.incrementValidations = function() {
 
 // Get tier limits
 userSchema.methods.getTierLimits = function() {
+  // Admin users get unlimited access to everything regardless of tier
+  if (this.role === 'admin') {
+    return {
+      validationsPerMonth: -1, // unlimited
+      batchProcessing: true,
+      apiAccess: true,
+      prioritySupport: true,
+      advancedReports: true,
+      adminPanel: true,
+      caseIntegration: true,
+      adminPrivileges: true // special flag for admin users
+    };
+  }
+  
   const limits = {
     free: {
       validationsPerMonth: 5,

@@ -3,7 +3,7 @@
 # Enhanced Deployment Configuration with Testing Support
 # Server Details
 SERVER_HOST="34.235.117.235"
-SERVER_HOSTNAME="ec2-34-235-117-235.compute-1.amazonaws.com"
+SERVER_HOSTNAME="ec2-3-89-161-178.compute-1.amazonaws.com"
 SERVER_USER="ec2-user"
 
 # SSH Configuration

@@ -33,7 +33,11 @@ const DocumentUpload = () => {
 
   // Check if user can upload based on tier limits
   const canUpload = () => {
-    if (!user) return false;
+    if (!user || !user.tierLimits) return false;
+    
+    // Admin users always have unlimited access
+    if (user.role === 'admin') return true;
+    
     const limits = user.tierLimits;
     if (limits.validationsPerMonth === -1) return true; // Unlimited
     return user.validationsThisMonth < limits.validationsPerMonth;
@@ -161,8 +165,9 @@ const DocumentUpload = () => {
       {/* Usage Information */}
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="body2">
-          Current Plan: <strong>{user?.tier?.toUpperCase()}</strong> | 
-          Validations Used: <strong>{user?.validationsThisMonth}/{user?.tierLimits?.validationsPerMonth === -1 ? '∞' : user?.tierLimits?.validationsPerMonth}</strong>
+          Current Plan: <strong>{user?.tier?.toUpperCase()}</strong>
+          {user?.role === 'admin' && <strong> (ADMIN - Unlimited Access)</strong>} | 
+          Validations Used: <strong>{user?.role === 'admin' ? '∞' : `${user?.validationsThisMonth}/${user?.tierLimits?.validationsPerMonth === -1 ? '∞' : user?.tierLimits?.validationsPerMonth}`}</strong>
           {user?.tierLimits?.batchProcessing && ' | Batch Processing: Enabled'}
         </Typography>
       </Alert>

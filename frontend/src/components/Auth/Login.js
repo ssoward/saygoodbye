@@ -42,28 +42,28 @@ const validationSchema = Yup.object({
 const testUsers = [
   {
     name: 'Regular User',
-    email: 'user@test.com',
-    password: 'password123',
+    email: 'user@demo.com',
+    password: 'demopass123',
     role: 'user',
-    tier: 'free',
+    tier: 'FREE',
     icon: <PersonIcon />,
     description: 'Basic user account'
   },
   {
     name: 'Professional User',
-    email: 'pro@test.com',
-    password: 'password123',
+    email: 'pro@demo.com',
+    password: 'demo1234',
     role: 'user',
-    tier: 'professional',
+    tier: 'PROFESSIONAL',
     icon: <BusinessIcon />,
     description: 'Professional tier features'
   },
   {
     name: 'Admin User',
-    email: 'admin@test.com',
-    password: 'password123',
+    email: 'admin@demo.com',
+    password: 'demopass123',
     role: 'admin',
-    tier: 'enterprise',
+    tier: 'ADMIN',
     icon: <AdminIcon />,
     description: 'Full admin access'
   }
@@ -106,9 +106,10 @@ const Login = () => {
   };
 
   const getTierColor = (tier) => {
-    switch (tier) {
+    switch (tier.toLowerCase()) {
       case 'free': return 'default';
       case 'professional': return 'primary';
+      case 'admin': return 'secondary';
       case 'enterprise': return 'secondary';
       default: return 'default';
     }

@@ -156,7 +156,7 @@ const Subscription = () => {
   };
 
   const getUsagePercentage = () => {
-    if (!user?.tierLimits || user.tierLimits.validationsPerMonth === -1) return 0;
+    if (!user?.tierLimits || user.tierLimits.validationsPerMonth === -1 || user?.role === 'admin') return 0;
     return Math.min((user.validationsThisMonth / user.tierLimits.validationsPerMonth) * 100, 100);
   };
 
@@ -208,13 +208,13 @@ const Subscription = () => {
                 </Typography>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2">
-                    Validations Used
+                    {user?.role === 'admin' ? 'UNLIMITED (Admin)' : 'Validations Used'}
                   </Typography>
                   <Typography variant="body2">
-                    {user?.validationsThisMonth || 0} / {user?.tierLimits?.validationsPerMonth === -1 ? '∞' : user?.tierLimits?.validationsPerMonth || 0}
+                    {user?.role === 'admin' ? '∞' : `${user?.validationsThisMonth || 0} / ${user?.tierLimits?.validationsPerMonth === -1 ? '∞' : user?.tierLimits?.validationsPerMonth || 0}`}
                   </Typography>
                 </Box>
-                {user?.tierLimits?.validationsPerMonth !== -1 && (
+                {user?.tierLimits?.validationsPerMonth !== -1 && user?.role !== 'admin' && (
                   <LinearProgress
                     variant="determinate"
                     value={usagePercentage}

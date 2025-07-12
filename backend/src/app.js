@@ -17,6 +17,10 @@ const logger = require('./utils/logger');
 
 const app = express();
 
+// Trust proxy for production deployment behind nginx
+// Set specific proxy trust instead of 'true' for security
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: false,
@@ -31,13 +35,19 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Rate limiting
+// Rate limiting with proper proxy configuration
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  // Skip trust proxy validation for production deployment
+  trustProxy: 1,
+  // Use X-Forwarded-For header for IP identification
+  keyGenerator: (req) => {
+    return req.ip || req.connection.remoteAddress || 'unknown';
+  },
 });
 app.use(limiter);
 
@@ -80,7 +90,7 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    version: require('../../package.json').version || '1.0.0'
+    version: require('../package.json').version || '1.0.0'
   });
 });
 

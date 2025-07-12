@@ -48,7 +48,7 @@ const Dashboard = () => {
   };
 
   const getUsagePercentage = () => {
-    if (!stats || !user || !user.tierLimits) return 0;
+    if (!stats || !user || !user.tierLimits || !stats.validations) return 0;
     const limits = user.tierLimits;
     if (limits.validationsPerMonth === -1) return 0; // Unlimited
     return (stats.validations.thisMonth / limits.validationsPerMonth) * 100;
@@ -63,7 +63,7 @@ const Dashboard = () => {
     }
   };
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <Box sx={{ p: 3 }}>
         <LinearProgress />
@@ -143,10 +143,10 @@ const Dashboard = () => {
               <Box sx={{ mb: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2">
-                    Validations Used
+                    {user?.role === 'admin' ? 'UNLIMITED (Admin)' : 'Validations Used'}
                   </Typography>
                   <Typography variant="body2">
-                    {stats?.validations.thisMonth || 0} / {user?.tierLimits?.validationsPerMonth === -1 ? '∞' : user?.tierLimits?.validationsPerMonth || 0}
+                    {user?.role === 'admin' ? '∞' : `${stats?.validations.thisMonth || 0} / ${user?.tierLimits?.validationsPerMonth === -1 ? '∞' : user?.tierLimits?.validationsPerMonth || 0}`}
                   </Typography>
                 </Box>
                 {user?.tierLimits?.validationsPerMonth !== -1 && (
@@ -157,11 +157,21 @@ const Dashboard = () => {
                   />
                 )}
               </Box>
-              <Chip 
-                label={user?.tier?.toUpperCase() || 'FREE'} 
-                color="primary" 
-                size="small" 
-              />
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Chip 
+                  label={user?.tier?.toUpperCase() || 'FREE'} 
+                  color="primary" 
+                  size="small" 
+                />
+                {user?.role === 'admin' && (
+                  <Chip 
+                    label="ADMIN" 
+                    color="error" 
+                    size="small" 
+                    variant="outlined"
+                  />
+                )}
+              </Box>
             </CardContent>
           </Card>
         </Grid>

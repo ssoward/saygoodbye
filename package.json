@@ -1,0 +1,16 @@
+{
+  "name": "saygoodbye",
+  "version": "1.0.0",
+  "description": "Say Goodbye - POA Document Validation Application",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:critical": "playwright test critical.spec.js --reporter=line"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.1"
+  }
+}

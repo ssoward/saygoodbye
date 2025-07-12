@@ -23,7 +23,7 @@ router.post('/register', [
   body('firstName').trim().isLength({ min: 2 }).withMessage('First name must be at least 2 characters'),
   body('lastName').trim().isLength({ min: 2 }).withMessage('Last name must be at least 2 characters'),
   body('organization').optional().trim(),
-  body('phone').optional().isMobilePhone()
+  body('phone').optional().matches(/^[\+]?[1-9][\d]{0,15}$/).withMessage('Please enter a valid phone number')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
