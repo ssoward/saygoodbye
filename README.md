@@ -25,8 +25,7 @@ Visit the production app at: **http://34.235.117.235**
 - **Admin User**: `admin@demo.com` / `demopass123` (unlimited access + admin privileges)
 
 ### Health Monitoring
-- **Quick Check**: `./health-check-simple.sh`
-- **Advanced Report**: `./health-monitor-advanced.sh`
+- **Quick Check**: `./health-check-quick.sh`
 - **Comprehensive Analysis**: `./health-monitor-comprehensive.sh`
 - **Continuous Monitoring**: `./health-monitor-comprehensive.sh --continuous --alert`
 - **Live Dashboard**: SSH to server and run `~/monitoring/scripts/dashboard.sh`
@@ -54,17 +53,18 @@ saygoodbye/
 │   ├── tests/                       # Backend test suite
 │   └── package.json                 # Backend dependencies
 ├── deploy-enhanced.sh                # 🔧 Enhanced deployment script (v3.0)
+├── health-check-quick.sh             # 🏥 Quick health validation
 ├── health-monitor-comprehensive.sh   # 🏥 Comprehensive health monitoring
-├── health-monitor-advanced.sh        # 🏥 Advanced health monitoring
 ├── setup-monitoring-advanced.sh      # 📊 Production monitoring setup
-├── health-check-simple.sh           # 🏥 Basic health monitoring
-├── setup-monitoring.sh              # 📊 Basic monitoring setup
 ├── create-ec2-al2023.sh             # ☁️ EC2 instance creation
 ├── deploy.config.sh                 # ⚙️ Deployment configuration
+├── nginx-saygoodbye.conf            # 🌐 nginx configuration
+├── ecosystem.config.json            # 🔄 PM2 configuration
 ├── playwright.config.js             # 🎭 E2E test configuration
+├── playwright.critical.config.js    # 🎯 Critical test configuration
 ├── PRD.md                           # 📋 Product Requirements Document
-├── README.md                        # Project documentation
-└── DEVELOPMENT.md                   # Development setup guide
+├── README.md                        # 📖 Project documentation
+└── DEVELOPMENT.md                   # 🛠️ Development setup guide
 ```
 
 ## Features
@@ -279,34 +279,26 @@ The deployment script automatically validates:
 
 ### Comprehensive Monitoring System
 
-The health monitoring system provides multiple levels of monitoring:
+The health monitoring system provides two main levels of monitoring:
 
-#### 1. Basic Health Check
+#### 1. Quick Health Check
 ```bash
-./health-check-simple.sh
+./health-check-quick.sh
 ```
-- Quick system status overview
-- Basic service availability
-- Simple pass/fail reporting
+- 30-second system validation
+- Basic service availability check
+- Simple pass/fail reporting with health percentage
 
-#### 2. Advanced Health Monitor
-```bash
-./health-monitor-advanced.sh
-```
-- Detailed component analysis
-- Performance metrics collection
-- Historical data tracking
-
-#### 3. Comprehensive Health Monitor
+#### 2. Comprehensive Health Monitor
 ```bash
 ./health-monitor-comprehensive.sh
 ```
-- Complete system analysis with scoring
-- JSON report generation
-- User flow validation
-- Performance benchmarking
+- Complete system analysis with detailed scoring
+- JSON report generation with historical data
+- User flow validation and performance benchmarking
+- Automated alerting capabilities
 
-#### 4. Continuous Monitoring
+#### 3. Continuous Monitoring
 ```bash
 # Start continuous monitoring with alerts
 ./health-monitor-comprehensive.sh --continuous --alert --email your-email@domain.com
