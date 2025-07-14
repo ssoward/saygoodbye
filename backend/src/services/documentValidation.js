@@ -77,34 +77,24 @@ class DocumentValidationService {
       // Try PDF parsing first
       try {
         const pdfData = await pdfParse(dataBuffer);
-        if (pdfData.text && pdfData.text.trim().length > 100) {
+        if (pdfData.text && pdfData.text.trim().length > 0) {
+          logger.info(`PDF text extraction successful: ${pdfData.text.length} characters`);
           return { 
             text: pdfData.text, 
             confidence: 95 // High confidence for direct PDF text extraction
           };
         }
       } catch (pdfError) {
-        logger.warn('PDF parsing failed, falling back to OCR:', pdfError.message);
+        logger.warn('PDF parsing failed:', pdfError.message);
       }
       
-      // Fallback to OCR
-      logger.info('Using OCR for text extraction');
-      const ocrResult = await Tesseract.recognize(dataBuffer, 'eng', {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            logger.info(`OCR Progress: ${Math.round(m.progress * 100)}%`);
-          }
-        }
-      });
-      
-      return {
-        text: ocrResult.data.text,
-        confidence: Math.round(ocrResult.data.confidence)
-      };
+      // For now, if PDF parsing fails, return error instead of trying OCR
+      // OCR on PDFs requires conversion to images first
+      throw new Error('PDF text extraction failed. This PDF may be scanned or image-based. OCR for PDFs is not yet implemented.');
       
     } catch (error) {
       logger.error('Text extraction error:', error);
-      throw new Error('Failed to extract text from document');
+      throw error;
     }
   }
 

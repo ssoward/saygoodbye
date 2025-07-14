@@ -135,7 +135,9 @@ userSchema.methods.canValidate = function() {
 // Increment validation count
 userSchema.methods.incrementValidations = function() {
   this.validationsThisMonth += 1;
-  return this.save();
+  // Use validateBeforeSave: false to avoid triggering full document validation
+  // This prevents validation errors in other fields from blocking the increment
+  return this.save({ validateBeforeSave: false });
 };
 
 // Get tier limits
