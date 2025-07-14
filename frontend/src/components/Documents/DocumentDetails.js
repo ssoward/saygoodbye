@@ -57,6 +57,14 @@ const DocumentDetails = () => {
   }, [id]);
 
   const fetchDocument = async () => {
+    // Validate ID parameter before making API call
+    if (!id || id === 'undefined' || id === 'null') {
+      console.error('Invalid document ID:', id);
+      showError('Invalid document ID provided');
+      navigate('/documents');
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await api.get(`/documents/${id}`);

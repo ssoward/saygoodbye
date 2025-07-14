@@ -3,7 +3,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const { v4: uuidv4 } = require('uuid');
-const { body, validationResult } = require('express-validator');
+const { body, validationResult, param } = require('express-validator');
+const mongoose = require('mongoose');
 
 const Document = require('../models/Document');
 const { auth, checkValidationLimit, requireTier } = require('../middleware/auth');
@@ -178,12 +179,34 @@ router.post('/batch-validate', [
 });
 
 // Get document validation status and results
-router.get('/:documentId', auth, async (req, res) => {
-  try {
-    const document = await Document.findOne({
-      _id: req.params.documentId,
-      userId: req.user._id
-    });
+router.get('/:documentId', 
+  [
+    param('documentId')
+      .notEmpty()
+      .withMessage('Document ID is required')
+      .custom((value) => {
+        if (!mongoose.Types.ObjectId.isValid(value)) {
+          throw new Error('Invalid document ID format');
+        }
+        return true;
+      })
+  ],
+  auth, 
+  async (req, res) => {
+    try {
+      // Check validation errors
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: 'Invalid document ID',
+          details: errors.array()
+        });
+      }
+
+      const document = await Document.findOne({
+        _id: req.params.documentId,
+        userId: req.user._id
+      });
 
     if (!document) {
       return res.status(404).json({
@@ -244,7 +267,7 @@ router.get('/', auth, async (req, res) => {
     const total = await Document.countDocuments(query);
 
     const documentsWithSummary = documents.map(doc => ({
-      id: doc._id,
+      _id: doc._id,
       filename: doc.originalName,
       status: doc.status,
       uploadedAt: doc.createdAt,
@@ -274,12 +297,34 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Generate validation report
-router.get('/:documentId/report', auth, async (req, res) => {
-  try {
-    const document = await Document.findOne({
-      _id: req.params.documentId,
-      userId: req.user._id
-    });
+router.get('/:documentId/report', 
+  [
+    param('documentId')
+      .notEmpty()
+      .withMessage('Document ID is required')
+      .custom((value) => {
+        if (!mongoose.Types.ObjectId.isValid(value)) {
+          throw new Error('Invalid document ID format');
+        }
+        return true;
+      })
+  ],
+  auth, 
+  async (req, res) => {
+    try {
+      // Check validation errors
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: 'Invalid document ID',
+          details: errors.array()
+        });
+      }
+
+      const document = await Document.findOne({
+        _id: req.params.documentId,
+        userId: req.user._id
+      });
 
     if (!document) {
       return res.status(404).json({
@@ -315,12 +360,34 @@ router.get('/:documentId/report', auth, async (req, res) => {
 });
 
 // Download original document file
-router.get('/:documentId/download', auth, async (req, res) => {
-  try {
-    const document = await Document.findOne({
-      _id: req.params.documentId,
-      userId: req.user._id
-    });
+router.get('/:documentId/download', 
+  [
+    param('documentId')
+      .notEmpty()
+      .withMessage('Document ID is required')
+      .custom((value) => {
+        if (!mongoose.Types.ObjectId.isValid(value)) {
+          throw new Error('Invalid document ID format');
+        }
+        return true;
+      })
+  ],
+  auth, 
+  async (req, res) => {
+    try {
+      // Check validation errors
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: 'Invalid document ID',
+          details: errors.array()
+        });
+      }
+
+      const document = await Document.findOne({
+        _id: req.params.documentId,
+        userId: req.user._id
+      });
 
     if (!document) {
       return res.status(404).json({

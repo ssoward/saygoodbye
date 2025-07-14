@@ -121,7 +121,8 @@ export const AuthProvider = ({ children }) => {
       }
 
       const response = await api.get('/auth/me');
-      dispatch({ type: 'LOAD_USER_SUCCESS', payload: response.data.user });
+      // The /auth/me endpoint returns user data directly, not wrapped in .user
+      dispatch({ type: 'LOAD_USER_SUCCESS', payload: response.data });
     } catch (error) {
       console.error('Load user error:', error);
       dispatch({ 

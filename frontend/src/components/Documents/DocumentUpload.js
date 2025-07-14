@@ -35,12 +35,17 @@ const DocumentUpload = () => {
   const canUpload = () => {
     if (!user || !user.tierLimits) return false;
     
-    // Admin users always have unlimited access
+    // Admin users always have unlimited access (multiple checks for safety)
     if (user.role === 'admin') return true;
+    if (user.tierLimits?.adminPrivileges === true) return true;
     
     const limits = user.tierLimits;
-    if (limits.validationsPerMonth === -1) return true; // Unlimited
-    return user.validationsThisMonth < limits.validationsPerMonth;
+    // Unlimited validations
+    if (limits.validationsPerMonth === -1) return true; 
+    
+    // Check current usage vs limit (default to 0 if validationsThisMonth is missing)
+    const currentValidations = user.validationsThisMonth || 0;
+    return currentValidations < limits.validationsPerMonth;
   };
 
   const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
@@ -140,8 +145,16 @@ const DocumentUpload = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="warning" sx={{ mb: 3 }}>
-          You have reached your monthly validation limit ({user?.validationsThisMonth}/{user?.tierLimits?.validationsPerMonth}).
-          Please upgrade your plan to continue validating documents.
+          {user?.role === 'admin' || user?.tierLimits?.adminPrivileges ? (
+            <>You have unlimited validation access as an admin user.</>
+          ) : user?.tierLimits?.validationsPerMonth === -1 ? (
+            <>You have unlimited validations with your current plan.</>
+          ) : (
+            <>
+              You have reached your monthly validation limit ({user?.validationsThisMonth || 0}/{user?.tierLimits?.validationsPerMonth}).
+              Please upgrade your plan to continue validating documents.
+            </>
+          )}
         </Alert>
         <Button
           variant="contained"

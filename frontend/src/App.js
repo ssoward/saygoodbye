@@ -6,6 +6,7 @@ import { useNotification } from './contexts/NotificationContext';
 // Layout Components
 import Layout from './components/Layout/Layout';
 import LoadingSpinner from './components/Common/LoadingSpinner';
+import ErrorBoundary from './components/Common/ErrorBoundary';
 
 // Auth Components
 import Login from './components/Auth/Login';
@@ -102,67 +103,69 @@ function App() {
         />
       )}
       
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/login" element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        } />
-        
-        <Route path="/register" element={
-          <PublicRoute>
-            <Register />
-          </PublicRoute>
-        } />
-
-        {/* Protected Routes */}
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
+      <ErrorBoundary>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          } />
           
-          {/* Document Routes */}
-          <Route path="documents">
-            <Route index element={<DocumentList />} />
-            <Route path="upload" element={<DocumentUpload />} />
-            <Route path=":id" element={<DocumentDetails />} />
+          <Route path="/register" element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          } />
+
+          {/* Protected Routes */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            
+            {/* Document Routes */}
+            <Route path="documents">
+              <Route index element={<DocumentList />} />
+              <Route path="upload" element={<DocumentUpload />} />
+              <Route path=":id" element={<DocumentDetails />} />
+            </Route>
+
+            {/* User Routes */}
+            <Route path="profile" element={<Profile />} />
+            <Route path="subscription" element={<Subscription />} />
+
+            {/* Admin Routes */}
+            <Route path="admin" element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="admin/users" element={
+              <ProtectedRoute requireAdmin={true}>
+                <UserManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="admin/analytics" element={
+              <ProtectedRoute requireAdmin={true}>
+                <Analytics />
+              </ProtectedRoute>
+            } />
           </Route>
 
-          {/* User Routes */}
-          <Route path="profile" element={<Profile />} />
-          <Route path="subscription" element={<Subscription />} />
-
-          {/* Admin Routes */}
-          <Route path="admin" element={
-            <ProtectedRoute requireAdmin={true}>
-              <AdminDashboard />
-            </ProtectedRoute>
+          {/* Catch all route */}
+          <Route path="*" element={
+            isAuthenticated ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
-          <Route path="admin/users" element={
-            <ProtectedRoute requireAdmin={true}>
-              <UserManagement />
-            </ProtectedRoute>
-          } />
-          <Route path="admin/analytics" element={
-            <ProtectedRoute requireAdmin={true}>
-              <Analytics />
-            </ProtectedRoute>
-          } />
-        </Route>
-
-        {/* Catch all route */}
-        <Route path="*" element={
-          isAuthenticated ? (
-            <Navigate to="/dashboard" replace />
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } />
-      </Routes>
+        </Routes>
+      </ErrorBoundary>
     </div>
   );
 }

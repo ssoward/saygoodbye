@@ -121,6 +121,11 @@ const DocumentList = () => {
   };
 
   const handleDownloadReport = async (documentId) => {
+    if (!documentId || documentId === 'undefined') {
+      showError('Invalid document ID');
+      return;
+    }
+    
     await safeDownload(
       async () => {
         const response = await api.get(`/documents/${documentId}/report`, {
@@ -229,7 +234,7 @@ const DocumentList = () => {
         <>
           <Grid container spacing={3}>
             {documents.map((document) => (
-              <Grid item xs={12} md={6} lg={4} key={document._id}>
+              <Grid item xs={12} md={6} lg={4} key={document._id || `doc-${Math.random()}`}>
                 <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <CardContent sx={{ flexGrow: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -297,7 +302,13 @@ const DocumentList = () => {
                           size="small"
                           variant="outlined"
                           startIcon={<ViewIcon />}
-                          onClick={() => navigate(`/documents/${document._id}`)}
+                          onClick={() => {
+                            if (document._id && document._id !== 'undefined') {
+                              navigate(`/documents/${document._id}`);
+                            } else {
+                              showError('Invalid document ID');
+                            }
+                          }}
                         >
                           View Details
                         </Button>
@@ -308,7 +319,13 @@ const DocumentList = () => {
                           size="small"
                           variant="outlined"
                           startIcon={<DownloadIcon />}
-                          onClick={() => handleDownloadReport(document._id)}
+                          onClick={() => {
+                            if (document._id && document._id !== 'undefined') {
+                              handleDownloadReport(document._id);
+                            } else {
+                              showError('Invalid document ID');
+                            }
+                          }}
                           disabled={document.status !== 'completed'}
                         >
                           Report
