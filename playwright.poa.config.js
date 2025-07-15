@@ -13,11 +13,11 @@ module.exports = defineConfig({
   workers: 1, // Single worker for POA tests
   reporter: [
     ['html', { outputFolder: '/Users/ssoward/saygoodbye/test-results/poa-documents/html-report' }],
-    ['json', { outputFile: '/Users/ssoward/saygoodbye/test-results/poa-documents/poa-results-20250714-201006.json' }],
+    ['json', { outputFile: '/Users/ssoward/saygoodbye/test-results/poa-documents/poa-results-20250714-222827.json' }],
     ['line']
   ],
   use: {
-    baseURL: 'http://34.235.117.235',
+    baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
