@@ -122,10 +122,15 @@ const documentSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for faster queries
-documentSchema.index({ userId: 1, createdAt: -1 });
-documentSchema.index({ status: 1 });
-documentSchema.index({ caseId: 1 });
+// Enhanced indexes for scalability
+documentSchema.index({ userId: 1, createdAt: -1 }); // Existing: User documents by date
+documentSchema.index({ userId: 1, status: 1, createdAt: -1 }); // NEW: Status filtering with date
+documentSchema.index({ userId: 1, 'validationResults.overall': 1 }); // NEW: Results filtering
+documentSchema.index({ userId: 1, caseId: 1 }); // NEW: Case-based queries
+documentSchema.index({ userId: 1, tags: 1 }); // NEW: Tag filtering
+documentSchema.index({ originalName: 'text', notes: 'text' }); // NEW: Full-text search
+documentSchema.index({ status: 1 }); // Existing: Global status queries
+documentSchema.index({ caseId: 1 }); // Existing: Case queries
 
 // Virtual for validation summary
 documentSchema.virtual('validationSummary').get(function() {

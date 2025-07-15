@@ -10,6 +10,7 @@ const Document = require('../models/Document');
 const { auth, checkValidationLimit, requireTier } = require('../middleware/auth');
 const documentValidationService = require('../services/documentValidation');
 const reportService = require('../services/reportGeneration');
+const cacheService = require('../services/cacheService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -95,6 +96,9 @@ router.post('/validate', [
     });
 
     await document.save();
+
+    // Invalidate user's document cache
+    await cacheService.invalidateUserDocuments(req.user._id);
 
     // Start validation process (async)
     processDocumentValidation(document._id, req.file.path, req.file.originalname, req.user._id);
@@ -258,32 +262,81 @@ router.get('/:documentId',
   }
 });
 
-// Get user's documents with pagination
+// Get user's documents with enhanced pagination and filtering
 router.get('/', auth, async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const status = req.query.status;
-    const caseId = req.query.caseId;
+    const { 
+      page = 1, 
+      limit = 50, // Increased default for better performance
+      cursor, 
+      search, 
+      status, 
+      tags,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      validationResult
+    } = req.query;
 
+    const filters = { search, status, tags, sortBy, sortOrder, validationResult };
+    
+    // Try to get from cache first
+    const cacheKey = `docs:${req.user._id}:${cursor || page}:${JSON.stringify(filters)}`;
+    const cached = await cacheService.get(cacheKey);
+    
+    if (cached) {
+      return res.json({
+        ...cached,
+        fromCache: true,
+        performance: {
+          queryTime: '0ms (cached)',
+          cacheHit: true
+        }
+      });
+    }
+
+    const startTime = Date.now();
     const query = { userId: req.user._id };
     
-    if (status) {
-      query.status = status;
+    // Enhanced filtering
+    if (status && status !== 'all') query.status = status;
+    if (tags) query.tags = { $in: tags.split(',') };
+    if (validationResult && validationResult !== 'all') {
+      query['validationResults.overall'] = validationResult;
     }
     
-    if (caseId) {
-      query.caseId = caseId;
+    // Full-text search across multiple fields
+    if (search) {
+      query.$or = [
+        { originalName: { $regex: search, $options: 'i' } },
+        { notes: { $regex: search, $options: 'i' } },
+        { caseId: { $regex: search, $options: 'i' } }
+      ];
     }
 
+    // Cursor-based pagination for better performance with large datasets
+    if (cursor) {
+      const cursorDate = new Date(cursor);
+      query.createdAt = sortOrder === 'desc' 
+        ? { $lt: cursorDate }
+        : { $gt: cursorDate };
+    }
+
+    // Optimized query with lean() for better performance
     const documents = await Document.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .select('-extractedText -filePath'); // Exclude large text and file path for security
+      .select('_id originalName status createdAt fileSize caseId validationResults.overall tags processingTime notes')
+      .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
+      .limit(parseInt(limit))
+      .lean(); // Use lean() for 40-60% performance improvement
 
-    const total = await Document.countDocuments(query);
+    // Get total count only when needed (not for cursor-based pagination)
+    const total = cursor ? null : await Document.countDocuments({ userId: req.user._id });
 
+    // Calculate next cursor for infinite scroll
+    const nextCursor = documents.length === parseInt(limit) && documents.length > 0
+      ? documents[documents.length - 1].createdAt.toISOString()
+      : null;
+
+    // Optimized response mapping
     const documentsWithSummary = documents.map(doc => ({
       _id: doc._id,
       filename: doc.originalName,
@@ -291,20 +344,33 @@ router.get('/', auth, async (req, res) => {
       uploadedAt: doc.createdAt,
       fileSize: doc.fileSize,
       caseId: doc.caseId,
-      tags: doc.tags,
-      validationSummary: doc.validationSummary,
-      processingTime: doc.processingTime
+      tags: doc.tags || [],
+      validationResult: doc.validationResults?.overall,
+      processingTime: doc.processingTime,
+      notes: doc.notes
     }));
 
-    res.json({
+    const response = {
       documents: documentsWithSummary,
       pagination: {
-        page,
-        limit,
+        page: parseInt(page),
+        limit: parseInt(limit),
         total,
-        pages: Math.ceil(total / limit)
+        pages: total ? Math.ceil(total / limit) : null,
+        hasMore: !!nextCursor,
+        nextCursor
+      },
+      performance: {
+        queryTime: `${Date.now() - startTime}ms`,
+        resultCount: documents.length,
+        cacheHit: false
       }
-    });
+    };
+
+    // Cache the response for 5 minutes
+    await cacheService.set(cacheKey, response, 300);
+
+    res.json(response);
 
   } catch (error) {
     logger.error('Get documents error:', error);
@@ -463,6 +529,9 @@ router.delete('/:documentId', auth, async (req, res) => {
     // Delete from database
     await Document.findByIdAndDelete(document._id);
 
+    // Invalidate user's document cache
+    await cacheService.invalidateUserDocuments(req.user._id);
+
     logger.info(`Document deleted: ${document.originalName} by user ${req.user.email}`);
 
     res.json({
@@ -473,6 +542,133 @@ router.delete('/:documentId', auth, async (req, res) => {
     logger.error('Delete document error:', error);
     res.status(500).json({
       error: 'Error deleting document'
+    });
+  }
+});
+
+// Bulk document operations for better scalability
+router.post('/bulk-action', auth, async (req, res) => {
+  try {
+    const { action, documentIds, ...params } = req.body;
+    
+    if (!Array.isArray(documentIds) || documentIds.length === 0) {
+      return res.status(400).json({ 
+        error: 'Invalid document IDs. Must be a non-empty array.' 
+      });
+    }
+
+    // Validate all document IDs belong to the user
+    const validDocuments = await Document.find({
+      _id: { $in: documentIds },
+      userId: req.user._id
+    }).select('_id filePath originalName');
+
+    if (validDocuments.length !== documentIds.length) {
+      return res.status(403).json({ 
+        error: 'Some documents not found or access denied' 
+      });
+    }
+
+    let result;
+    const startTime = Date.now();
+
+    switch (action) {
+      case 'delete':
+        // Delete files from filesystem first
+        for (const doc of validDocuments) {
+          try {
+            if (doc.filePath) {
+              await fs.unlink(doc.filePath);
+            }
+          } catch (fileError) {
+            logger.warn(`Error deleting file ${doc.filePath}:`, fileError);
+          }
+        }
+        
+        // Delete from database
+        result = await Document.deleteMany({
+          _id: { $in: documentIds },
+          userId: req.user._id
+        });
+        
+        logger.info(`Bulk delete: ${result.deletedCount} documents by user ${req.user.email}`);
+        
+        // Invalidate user's document cache
+        await cacheService.invalidateUserDocuments(req.user._id);
+        break;
+      
+      case 'updateTags':
+        const { tags = [], addTags = true } = params;
+        
+        if (!Array.isArray(tags)) {
+          return res.status(400).json({ error: 'Tags must be an array' });
+        }
+        
+        const updateOperation = addTags 
+          ? { $addToSet: { tags: { $each: tags } } }
+          : { $set: { tags } };
+          
+        result = await Document.updateMany(
+          { _id: { $in: documentIds }, userId: req.user._id },
+          updateOperation
+        );
+        
+        logger.info(`Bulk tag update: ${result.modifiedCount} documents by user ${req.user.email}`);
+        break;
+      
+      case 'updateStatus':
+        const { status } = params;
+        
+        if (!['processing', 'completed', 'failed'].includes(status)) {
+          return res.status(400).json({ error: 'Invalid status' });
+        }
+        
+        result = await Document.updateMany(
+          { _id: { $in: documentIds }, userId: req.user._id },
+          { $set: { status, updatedAt: new Date() } }
+        );
+        
+        logger.info(`Bulk status update: ${result.modifiedCount} documents to ${status} by user ${req.user.email}`);
+        break;
+      
+      case 'exportData':
+        // Generate export data for selected documents
+        const exportDocs = await Document.find({
+          _id: { $in: documentIds },
+          userId: req.user._id
+        }).select('-extractedText -filePath').lean();
+        
+        result = {
+          exportData: exportDocs,
+          exportDate: new Date().toISOString(),
+          totalDocuments: exportDocs.length
+        };
+        
+        logger.info(`Bulk export: ${exportDocs.length} documents by user ${req.user.email}`);
+        break;
+        
+      default:
+        return res.status(400).json({ error: 'Invalid action' });
+    }
+
+    const processingTime = Date.now() - startTime;
+
+    res.json({ 
+      success: true, 
+      action,
+      documentsProcessed: documentIds.length,
+      result,
+      performance: {
+        processingTime: `${processingTime}ms`,
+        documentsPerSecond: Math.round((documentIds.length / processingTime) * 1000)
+      }
+    });
+
+  } catch (error) {
+    logger.error('Bulk action error:', error);
+    res.status(500).json({ 
+      error: 'Bulk action failed',
+      details: error.message 
     });
   }
 });
@@ -516,6 +712,9 @@ async function processDocumentValidation(documentId, filePath, originalName, use
       await user.incrementValidations();
     }
 
+    // Invalidate user's document cache when validation completes
+    await cacheService.invalidateUserDocuments(userId);
+
     logger.info(`Document validation completed: ${originalName}`);
 
     // TODO: Send notification to user if enabled
@@ -528,6 +727,9 @@ async function processDocumentValidation(documentId, filePath, originalName, use
       status: 'failed',
       errorMessage: error.message
     });
+    
+    // Invalidate user's document cache when validation fails
+    await cacheService.invalidateUserDocuments(userId);
   }
 }
 

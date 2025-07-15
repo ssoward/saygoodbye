@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useNotification } from './contexts/NotificationContext';
+import QueryProvider from './providers/QueryProvider';
 
 // Layout Components
 import Layout from './components/Layout/Layout';
@@ -15,7 +16,7 @@ import Register from './components/Auth/Register';
 // Dashboard Components
 import Dashboard from './components/Dashboard/Dashboard';
 import DocumentUpload from './components/Documents/DocumentUpload';
-import DocumentList from './components/Documents/DocumentList';
+import VirtualizedDocumentList from './components/Documents/VirtualizedDocumentList';
 import DocumentDetails from './components/Documents/DocumentDetails';
 
 // User Components
@@ -95,15 +96,16 @@ function App() {
   }
 
   return (
-    <div className="App">
-      {showOnboarding && (
-        <OnboardingTour 
-          onComplete={() => setShowOnboarding(false)}
-          onSkip={() => setShowOnboarding(false)}
-        />
-      )}
-      
-      <ErrorBoundary>
+    <QueryProvider>
+      <div className="App">
+        {showOnboarding && (
+          <OnboardingTour 
+            onComplete={() => setShowOnboarding(false)}
+            onSkip={() => setShowOnboarding(false)}
+          />
+        )}
+        
+        <ErrorBoundary>
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={
@@ -129,7 +131,7 @@ function App() {
             
             {/* Document Routes */}
             <Route path="documents">
-              <Route index element={<DocumentList />} />
+              <Route index element={<VirtualizedDocumentList />} />
               <Route path="upload" element={<DocumentUpload />} />
               <Route path=":id" element={<DocumentDetails />} />
             </Route>
@@ -167,6 +169,7 @@ function App() {
         </Routes>
       </ErrorBoundary>
     </div>
+    </QueryProvider>
   );
 }
 

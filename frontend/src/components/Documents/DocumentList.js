@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { debounce } from 'lodash';
 import {
   Box,
   Typography,
@@ -15,7 +16,11 @@ import {
   Pagination,
   Alert,
   LinearProgress,
-  Paper
+  Paper,
+  Checkbox,
+  FormControlLabel,
+  Stack,
+  Skeleton
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -47,25 +52,56 @@ const DocumentList = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [filterAnchorEl, setFilterAnchorEl] = useState(null);
+  const [selectedDocuments, setSelectedDocuments] = useState(new Set());
+  const [hasMore, setHasMore] = useState(true);
+  const [nextCursor, setNextCursor] = useState(null);
+
+  // Debounced search for better performance
+  const debouncedSearch = useMemo(
+    () => debounce((term) => {
+      setPage(1);
+      setNextCursor(null);
+      fetchDocuments(true, term);
+    }, 300),
+    []
+  );
+
+  useEffect(() => {
+    debouncedSearch(searchTerm);
+    return () => debouncedSearch.cancel();
+  }, [searchTerm, debouncedSearch]);
 
   useEffect(() => {
     fetchDocuments();
-  }, [page, filter, searchTerm]);
+  }, [page, filter]);
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = async (reset = false, searchOverride = null) => {
     try {
       setLoading(true);
       const response = await api.get('/documents', {
         params: {
-          page,
-          limit: 10,
-          search: searchTerm,
-          status: filter !== 'all' ? filter : undefined
+          page: reset ? 1 : page,
+          limit: 50, // Increased for better performance
+          search: searchOverride !== null ? searchOverride : searchTerm,
+          status: filter !== 'all' ? filter : undefined,
+          cursor: reset ? null : nextCursor
         }
       });
       
-      setDocuments(response.data.documents);
-      setTotalPages(response.data.totalPages);
+      const newDocuments = response.data.documents;
+      
+      if (reset) {
+        setDocuments(newDocuments);
+        setPage(1);
+      } else {
+        setDocuments(prev => page === 1 ? newDocuments : [...prev, ...newDocuments]);
+      }
+      
+      setTotalPages(response.data.pagination.pages || 1);
+      setHasMore(response.data.pagination.hasMore || false);
+      setNextCursor(response.data.pagination.nextCursor);
+      setSelectedDocuments(new Set()); // Clear selection on new data
+      
     } catch (error) {
       console.error('Error fetching documents:', error);
       showError('Failed to load documents');
@@ -143,6 +179,75 @@ const DocumentList = () => {
     setPage(1);
   };
 
+  // Enhanced selection management
+  const handleSelectDocument = useCallback((documentId) => {
+    setSelectedDocuments(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(documentId)) {
+        newSet.delete(documentId);
+      } else {
+        newSet.add(documentId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    if (selectedDocuments.size === documents.length) {
+      setSelectedDocuments(new Set());
+    } else {
+      setSelectedDocuments(new Set(documents.map(doc => doc._id)));
+    }
+  }, [documents, selectedDocuments.size]);
+
+  // Bulk operations
+  const handleBulkAction = async (action, params = {}) => {
+    if (selectedDocuments.size === 0) {
+      showError('Please select documents first');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.post('/documents/bulk-action', {
+        action,
+        documentIds: Array.from(selectedDocuments),
+        ...params
+      });
+
+      if (response.data.success) {
+        showSuccess(`${action} completed for ${selectedDocuments.size} documents`);
+        setSelectedDocuments(new Set());
+        fetchDocuments(true); // Refresh the list
+      }
+    } catch (error) {
+      console.error('Bulk action error:', error);
+      showError(`Failed to ${action} selected documents`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (window.confirm(`Are you sure you want to delete ${selectedDocuments.size} selected documents? This action cannot be undone.`)) {
+      handleBulkAction('delete');
+    }
+  };
+
+  const handleBulkExport = () => {
+    handleBulkAction('exportData').then(() => {
+      // Could trigger download of export file
+      showSuccess('Export data prepared successfully');
+    });
+  };
+
+  // Load more documents for infinite scroll
+  const loadMoreDocuments = useCallback(() => {
+    if (!loading && hasMore) {
+      setPage(prev => prev + 1);
+    }
+  }, [loading, hasMore]);
+
   if (loading && documents.length === 0) {
     return (
       <Box sx={{ p: 3 }}>
@@ -167,10 +272,10 @@ const DocumentList = () => {
         </Button>
       </Box>
 
-      {/* Search and Filter */}
+      {/* Enhanced Search, Filter, and Bulk Actions */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={8}>
+          <Grid item xs={12} md={6}>
             <TextField
               fullWidth
               placeholder="Search documents by filename, case ID, or notes..."
@@ -185,6 +290,63 @@ const DocumentList = () => {
               }}
             />
           </Grid>
+          <Grid item xs={12} md={3}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<FilterIcon />}
+              onClick={handleFilterClick}
+            >
+              Filter: {filter === 'all' ? 'All Documents' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+            </Button>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={selectedDocuments.size === documents.length && documents.length > 0}
+                  indeterminate={selectedDocuments.size > 0 && selectedDocuments.size < documents.length}
+                  onChange={handleSelectAll}
+                />
+              }
+              label={`Select All (${selectedDocuments.size})`}
+            />
+          </Grid>
+        </Grid>
+
+        {/* Bulk Actions Bar */}
+        {selectedDocuments.size > 0 && (
+          <Box sx={{ mt: 2, p: 2, bgcolor: 'primary.50', borderRadius: 1 }}>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Typography variant="body2" color="primary">
+                {selectedDocuments.size} document{selectedDocuments.size !== 1 ? 's' : ''} selected
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                onClick={handleBulkDelete}
+              >
+                Delete Selected
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleBulkExport}
+              >
+                Export Selected
+              </Button>
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => setSelectedDocuments(new Set())}
+              >
+                Clear Selection
+              </Button>
+            </Stack>
+          </Box>
+        )}
+      </Paper>
           <Grid item xs={12} md={4}>
             <Button
               fullWidth
