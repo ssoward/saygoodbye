@@ -13,7 +13,7 @@ echo "=========================================="
 PROJECT_DIR="/Users/ssoward/saygoodbye"
 TEST_DOCS_DIR="$PROJECT_DIR/test-docs"
 RESULTS_DIR="$PROJECT_DIR/test-results/poa-documents"
-BASE_URL="http://34.235.117.235"
+BASE_URL="${TEST_BASE_URL:-http://localhost:3000}"
 
 # Colors for output
 RED='\033[0;31m'
