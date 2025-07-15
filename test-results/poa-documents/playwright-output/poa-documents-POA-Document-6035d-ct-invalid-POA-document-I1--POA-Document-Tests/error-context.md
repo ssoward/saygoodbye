@@ -1,0 +1,49 @@
+# Page snapshot
+
+```yaml
+- banner:
+  - text: Say Goodbye ENTERPRISE
+  - button
+  - button "account of current user"
+- navigation:
+  - list:
+    - listitem:
+      - button "Dashboard"
+    - listitem:
+      - button "Upload Document"
+    - listitem:
+      - button "My Documents"
+    - listitem:
+      - button "Profile"
+    - listitem:
+      - button "Subscription"
+  - separator
+  - list:
+    - listitem:
+      - button "Admin Dashboard"
+    - listitem:
+      - button "User Management"
+    - listitem:
+      - button "Analytics"
+- main:
+  - heading "Welcome back, !" [level=4]
+  - paragraph: Here's an overview of your document validation activity.
+  - heading "Upload Document" [level=6]
+  - paragraph: Validate a new POA document
+  - heading "My Documents" [level=6]
+  - paragraph: View validation history
+  - heading "Upgrade Plan" [level=6]
+  - paragraph: Unlock more features
+  - heading "Monthly Usage" [level=6]
+  - paragraph: UNLIMITED (Admin)
+  - paragraph: ∞
+  - text: ENTERPRISE ADMIN
+  - heading "Document Summary" [level=6]
+  - heading "6" [level=4]
+  - paragraph: Total Documents
+  - heading "2" [level=4]
+  - paragraph: Completed
+  - heading "Validation Results" [level=6]
+  - heading "2" [level=4]
+  - text: FAIL
+```

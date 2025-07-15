@@ -7,7 +7,14 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
     lowercase: true,
-    trim: true
+    trim: true,
+    validate: {
+      validator: function(email) {
+        // Basic email validation regex
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      },
+      message: 'Please enter a valid email address'
+    }
   },
   password: {
     type: String,
@@ -140,6 +147,13 @@ userSchema.methods.incrementValidations = function() {
   return this.save({ validateBeforeSave: false });
 };
 
+// Reset validation count (for monthly resets)
+userSchema.methods.resetValidations = function() {
+  this.validationsThisMonth = 0;
+  this.lastValidationReset = new Date();
+  return this.save({ validateBeforeSave: false });
+};
+
 // Get tier limits
 userSchema.methods.getTierLimits = function() {
   // Admin users get unlimited access to everything regardless of tier
@@ -183,6 +197,13 @@ userSchema.methods.getTierLimits = function() {
   };
   
   return limits[this.tier];
+};
+
+// Reset validation count
+userSchema.methods.resetValidations = function() {
+  this.validationsThisMonth = 0;
+  this.lastValidationReset = new Date();
+  return this.save();
 };
 
 module.exports = mongoose.model('User', userSchema);

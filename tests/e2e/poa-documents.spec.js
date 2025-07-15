@@ -75,7 +75,12 @@ test.describe('POA Document Validation - Basic Suite', () => {
       
       // Upload the test document
       const filePath = path.join(TEST_DOCS_DIR, 'V1.pdf');
-      const fileInput = page.locator('input[type="file"]');
+      
+      // Wait for the upload area to be visible
+      await page.waitForSelector('div:has-text("Drag & drop PDF files here")', { timeout: 10000 });
+      
+      // Find the file input (react-dropzone creates a hidden input)
+      const fileInput = page.locator('input[type="file"]').first();
       await fileInput.setInputFiles(filePath);
       
       // Wait for upload to process (allow time for validation)
@@ -131,7 +136,11 @@ test.describe('POA Document Validation - Basic Suite', () => {
       
       // Upload the invalid test document
       const filePath = path.join(TEST_DOCS_DIR, 'I1.pdf');
-      const fileInput = page.locator('input[type="file"]');
+      
+      // Wait for the upload area to be visible
+      await page.waitForSelector('div:has-text("Drag & drop PDF files here")', { timeout: 10000 });
+      
+      const fileInput = page.locator('input[type="file"]').first();
       await fileInput.setInputFiles(filePath);
       
       // Wait for upload to process
@@ -203,7 +212,11 @@ test.describe('POA Document Validation - Basic Suite', () => {
         
         // Upload a valid test document
         const filePath = path.join(TEST_DOCS_DIR, 'V2.pdf');
-        const fileInput = page.locator('input[type="file"]');
+        
+        // Wait for the upload area to be visible
+        await page.waitForSelector('div:has-text("Drag & drop PDF files here")', { timeout: 10000 });
+        
+        const fileInput = page.locator('input[type="file"]').first();
         await fileInput.setInputFiles(filePath);
         
         // Wait for processing
@@ -240,7 +253,10 @@ test.describe('POA Document Validation - Basic Suite', () => {
         }
         
         // Try to upload text file
-        const fileInput = page.locator('input[type="file"]');
+        // Wait for the upload area to be visible
+        await page.waitForSelector('div:has-text("Drag & drop PDF files here")', { timeout: 10000 });
+        
+        const fileInput = page.locator('input[type="file"]').first();
         await fileInput.setInputFiles(txtFilePath);
         
         // Wait and check for error handling
@@ -283,7 +299,11 @@ test.describe('POA Document Validation - Basic Suite', () => {
       
       // Upload corrupt PDF
       const filePath = path.join(TEST_DOCS_DIR, 'I7.pdf');
-      const fileInput = page.locator('input[type="file"]');
+      
+      // Wait for the upload area to be visible
+      await page.waitForSelector('div:has-text("Drag & drop PDF files here")', { timeout: 10000 });
+      
+      const fileInput = page.locator('input[type="file"]').first();
       await fileInput.setInputFiles(filePath);
       
       // Wait for processing
@@ -335,7 +355,11 @@ test.describe('POA Document Validation - Basic Suite', () => {
           
           // Upload document
           const filePath = path.join(TEST_DOCS_DIR, doc);
-          const fileInput = page.locator('input[type="file"]');
+          
+          // Wait for the upload area to be visible
+          await page.waitForSelector('div:has-text("Drag & drop PDF files here")', { timeout: 10000 });
+          
+          const fileInput = page.locator('input[type="file"]').first();
           await fileInput.setInputFiles(filePath);
           
           // Wait for processing
@@ -372,7 +396,11 @@ test.describe('POA Document Validation - Basic Suite', () => {
       
       // Upload document
       const filePath = path.join(TEST_DOCS_DIR, 'V3.pdf');
-      const fileInput = page.locator('input[type="file"]');
+      
+      // Wait for the upload area to be visible
+      await page.waitForSelector('div:has-text("Drag & drop PDF files here")', { timeout: 10000 });
+      
+      const fileInput = page.locator('input[type="file"]').first();
       await fileInput.setInputFiles(filePath);
       
       // Wait for any processing indicators to appear/disappear

@@ -79,7 +79,7 @@ describe('AuthContext', () => {
 
     // Mock the /auth/me endpoint that gets called when token exists
     api.get.mockResolvedValueOnce({
-      data: { user: mockUser }
+      data: mockUser
     });
 
     const { result } = renderHook(() => useAuth(), { wrapper });

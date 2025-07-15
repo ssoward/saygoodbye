@@ -47,11 +47,29 @@ const upload = multer({
   }
 });
 
+// Multer error handler middleware
+const multerErrorHandler = (error, req, res, next) => {
+  if (error instanceof multer.MulterError || error.message === 'Only PDF files are allowed') {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        error: 'File size too large. Maximum size is 10MB.'
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+  next(error);
+};
+
 // Upload and validate single document
 router.post('/validate', [
   auth,
   checkValidationLimit,
-  upload.single('document')
+  upload.single('document'),
+  multerErrorHandler
 ], async (req, res) => {
   try {
     if (!req.file) {

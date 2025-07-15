@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
 const { setupTestDB, teardownTestDB, clearTestDB } = require('./setup');
+const { generatePOATestPDF, generateNonPOATestPDF } = require('./utils/testPDFGenerator');
 
 describe('Document API', () => {
   let authToken;
@@ -42,8 +43,8 @@ describe('Document API', () => {
 
   describe('POST /api/documents/validate', () => {
     it('should accept valid PDF upload', async () => {
-      // Create a mock PDF file
-      const mockPDFBuffer = Buffer.from('%PDF-1.4\nMock PDF content');
+      // Create a proper test PDF with POA content
+      const mockPDFBuffer = generatePOATestPDF();
       
       const response = await request(app)
         .post('/api/documents/validate')
@@ -68,6 +69,7 @@ describe('Document API', () => {
         .expect(400);
 
       expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Only PDF files are allowed');
     });
 
     it('should reject upload without authentication', async () => {
