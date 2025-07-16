@@ -117,7 +117,91 @@ const documentSchema = new mongoose.Schema({
   },
   reportPath: {
     type: String
-  }
+  },
+  
+  // OCR and Image Processing Fields
+  isScannedDocument: {
+    type: Boolean,
+    default: false
+  },
+  ocrData: {
+    extractedText: String,
+    confidence: {
+      type: Number,
+      min: 0,
+      max: 100
+    },
+    processingTime: Number,
+    imageQuality: {
+      score: {
+        type: Number,
+        min: 0,
+        max: 100
+      },
+      resolution: String,
+      pixelCount: Number,
+      density: String,
+      recommendations: [String]
+    },
+    ocrMetadata: {
+      engine: String,
+      version: String,
+      language: String,
+      pageSegmentation: String
+    },
+    blocks: [{
+      text: String,
+      confidence: Number,
+      bbox: {
+        x0: Number,
+        y0: Number,
+        x1: Number,
+        y1: Number
+      }
+    }],
+    words: [{
+      text: String,
+      confidence: Number,
+      bbox: {
+        x0: Number,
+        y0: Number,
+        x1: Number,
+        y1: Number
+      }
+    }]
+  },
+  
+  // Image file fields
+  originalImage: {
+    path: String,
+    size: Number,
+    mimetype: String,
+    dimensions: {
+      width: Number,
+      height: Number
+    }
+  },
+  processedImage: {
+    path: String,
+    enhancements: [String]
+  },
+  
+  // Processing flags
+  requiresManualReview: {
+    type: Boolean,
+    default: false
+  },
+  manualReviewReason: String,
+  userOcrCorrections: [{
+    originalText: String,
+    correctedText: String,
+    confidence: Number,
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+
 }, {
   timestamps: true
 });

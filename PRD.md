@@ -36,10 +36,12 @@ The Say Goodbye POA (Power of Attorney) Application is a production-ready web ap
 
 ### Core Functionality
 - **Document Validation**: Analyze POA documents for compliance with California Probate Code
+- **Scanned Document Processing**: Upload and verify scanned documents (images/PDFs) with OCR capability
 - **User Management**: Tiered access system (Free, Professional, Enterprise, Admin)
 - **Authentication**: Secure JWT-based authentication with role-based access
 - **File Processing**: PDF upload, preview, and validation with drag-and-drop interface
-- **Compliance Reporting**: Generate detailed validation reports
+- **Image Processing**: Support for scanned documents (JPEG, PNG, TIFF) with OCR text extraction
+- **Compliance Reporting**: Generate detailed validation reports for all document types
 
 ### Technical Stack
 - **Frontend**: React 18.x, Material-UI, React Router v6
@@ -536,6 +538,7 @@ server {
 - Gather user feedback for future enhancements
 - Scale infrastructure as needed
 - Implement additional POA document types if required
+
 ---
 
 **Document Control:**
@@ -543,3 +546,150 @@ server {
 - **Approval**: Development Team
 - **Next Review**: August 12, 2025
 - **Distribution**: All stakeholders
+
+## Scanned Document Processing Feature
+
+### Overview
+The scanned document processing feature enables users to upload and verify physical POA documents that have been scanned or photographed. This capability significantly expands the app's utility by supporting real-world scenarios where only physical documents are available.
+
+### Key Capabilities
+
+#### 1. Multi-Format Support
+- **Image Formats**: JPEG, PNG, TIFF, WebP
+- **PDF Scans**: Scanned PDF documents with embedded images
+- **Mobile Photos**: Documents photographed with smartphones/tablets
+- **Multi-Page Documents**: Support for documents spanning multiple pages
+
+#### 2. Advanced OCR Processing
+- **Text Extraction**: High-accuracy OCR using Tesseract.js
+- **Language Support**: English with legal document optimization
+- **Confidence Scoring**: OCR confidence levels for extracted text
+- **Error Correction**: Intelligent text cleanup and formatting
+
+#### 3. Image Enhancement
+- **Auto-Rotation**: Automatically detect and correct document orientation
+- **Contrast Enhancement**: Improve text clarity for better OCR results
+- **Noise Reduction**: Remove artifacts and improve image quality
+- **Edge Detection**: Automatically crop document boundaries
+
+#### 4. Quality Validation
+- **Resolution Check**: Minimum 300 DPI recommendation
+- **Readability Assessment**: Validate text clarity before processing
+- **Format Verification**: Ensure supported file types
+- **Size Limits**: Maximum 25MB per file, up to 10 pages per document
+
+### User Experience
+
+#### Upload Process
+1. **Drag & Drop Interface**: Enhanced to support image files
+2. **Camera Integration**: Direct photo capture on mobile devices
+3. **Preview Mode**: Show original image with extracted text overlay
+4. **Quality Feedback**: Real-time suggestions for image improvement
+
+#### Processing Workflow
+1. **Upload Validation**: Check file format, size, and basic quality
+2. **Image Enhancement**: Auto-improve image quality for OCR
+3. **OCR Processing**: Extract text with confidence scoring
+4. **Document Analysis**: Apply same validation rules as PDF documents
+5. **Results Display**: Show OCR confidence and validation results
+
+#### Quality Indicators
+- **OCR Confidence**: Green (>90%), Yellow (70-90%), Red (<70%)
+- **Text Coverage**: Percentage of document successfully extracted
+- **Processing Status**: Real-time progress indicator
+- **Retry Options**: Re-upload suggestions for poor quality scans
+
+### Technical Implementation
+
+#### Frontend Enhancements
+- **File Type Detection**: Automatic format identification
+- **Image Preview**: Thumbnail generation and full-size preview
+- **Progress Tracking**: Multi-stage processing indicators
+- **Error Handling**: Specific guidance for image quality issues
+
+#### Backend Processing
+- **OCR Service**: Tesseract.js integration with optimized settings
+- **Image Processing**: Sharp.js for image enhancement and manipulation
+- **Batch Processing**: Handle multi-page documents efficiently
+- **Caching**: Store processed OCR results to avoid reprocessing
+
+#### Performance Considerations
+- **Async Processing**: Background OCR to maintain UI responsiveness
+- **Progress Updates**: WebSocket notifications for processing status
+- **Resource Management**: Limit concurrent OCR operations
+- **Storage Optimization**: Compress original images after processing
+
+### Validation Rules
+
+#### Image Quality Requirements
+- **Minimum Resolution**: 300 DPI recommended, 150 DPI minimum
+- **File Size**: Maximum 25MB per image
+- **Aspect Ratio**: Standard document proportions (A4, Letter, Legal)
+- **Color Mode**: Support for color, grayscale, and black & white
+
+#### OCR Accuracy Thresholds
+- **High Confidence**: >90% - Process normally
+- **Medium Confidence**: 70-90% - Flag for review
+- **Low Confidence**: <70% - Suggest re-upload with better quality
+
+#### Document Structure Detection
+- **Header Recognition**: Identify POA title and document type
+- **Signature Areas**: Detect signature blocks and notary sections
+- **Date Fields**: Extract and validate date formats
+- **Legal Text**: Identify required legal language and clauses
+
+### Error Handling
+
+#### Common Issues
+- **Poor Image Quality**: Blurry, low contrast, or skewed images
+- **Incomplete Text**: Partial document capture or cropped content
+- **Mixed Formats**: Documents with both text and handwritten sections
+- **Multiple Pages**: Handling page sequence and continuity
+
+#### User Guidance
+- **Quality Tips**: Best practices for scanning/photographing documents
+- **Retry Instructions**: Specific suggestions for improving uploads
+- **Alternative Options**: Fallback to PDF if available
+- **Support Contact**: Help for complex document issues
+
+### Security Considerations
+
+#### Image Processing Security
+- **File Validation**: Verify file headers and content
+- **Malware Scanning**: Check uploaded images for threats
+- **Memory Management**: Prevent buffer overflow attacks
+- **Access Control**: Same security model as existing documents
+
+#### Data Protection
+- **OCR Data**: Encrypt extracted text at rest
+- **Image Storage**: Secure storage with access logging
+- **Processing Logs**: Audit trail for all OCR operations
+- **Cleanup Policies**: Automatic deletion of temporary processing files
+
+### Performance Metrics
+
+#### Processing Benchmarks
+- **OCR Speed**: Target <30 seconds for standard documents
+- **Accuracy Rate**: >95% for high-quality scans
+- **Success Rate**: >90% successful processing
+- **User Satisfaction**: <3 retries average per document
+
+#### Resource Usage
+- **CPU**: OCR processing intensive, use worker threads
+- **Memory**: Limit concurrent operations to prevent overflow
+- **Storage**: Implement cleanup policies for temporary files
+- **Bandwidth**: Optimize image compression for uploads
+
+### Future Enhancements
+
+#### Advanced Features
+- **AI Document Recognition**: Automatically identify POA vs other documents
+- **Handwriting Recognition**: Support for handwritten signatures and notes
+- **Multi-Language Support**: Expand beyond English documents
+- **Batch Processing**: Upload multiple documents simultaneously
+
+#### Integration Opportunities
+- **Cloud OCR Services**: Azure/AWS OCR for improved accuracy
+- **Document Comparison**: Compare scanned vs original versions
+- **Template Matching**: Pre-defined POA templates for validation
+- **Export Options**: Extract structured data for external systems

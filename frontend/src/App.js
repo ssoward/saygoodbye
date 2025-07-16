@@ -16,6 +16,7 @@ import Register from './components/Auth/Register';
 // Dashboard Components
 import Dashboard from './components/Dashboard/Dashboard';
 import DocumentUpload from './components/Documents/DocumentUpload';
+import ScanDocumentUpload from './components/Documents/ScanDocumentUpload';
 import VirtualizedDocumentList from './components/Documents/VirtualizedDocumentList';
 import DocumentDetails from './components/Documents/DocumentDetails';
 
@@ -133,6 +134,7 @@ function App() {
             <Route path="documents">
               <Route index element={<VirtualizedDocumentList />} />
               <Route path="upload" element={<DocumentUpload />} />
+              <Route path="scan" element={<ScanDocumentUpload />} />
               <Route path=":id" element={<DocumentDetails />} />
             </Route>
 
