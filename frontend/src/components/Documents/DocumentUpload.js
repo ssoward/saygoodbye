@@ -8,18 +8,28 @@ import {
   LinearProgress,
   Grid,
   TextField,
-  Chip
+  Chip,
+  Tabs,
+  Tab,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
   Description as PdfIcon,
-  CheckCircle as CheckIcon
+  CheckCircle as CheckIcon,
+  PhotoCamera as ScanIcon,
+  InsertDriveFile as FileIcon
 } from '@mui/icons-material';
 import { useDropzone } from 'react-dropzone';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
+import ScannedDocumentUpload from '../ScannedDocumentUpload';
+import ScannedDocumentViewer from '../ScannedDocumentViewer';
 
 const DocumentUpload = () => {
   const { user } = useAuth();
@@ -30,6 +40,9 @@ const DocumentUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [caseId, setCaseId] = useState('');
   const [notes, setNotes] = useState('');
+  const [uploadType, setUploadType] = useState(0); // 0 = PDF, 1 = Scanned
+  const [showScannedViewer, setShowScannedViewer] = useState(false);
+  const [scannedDocumentId, setScannedDocumentId] = useState(null);
 
   // Check if user can upload based on tier limits
   const canUpload = () => {
@@ -75,7 +88,13 @@ const DocumentUpload = () => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'application/pdf': ['.pdf']
+      'application/pdf': ['.pdf'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/gif': ['.gif'],
+      'image/bmp': ['.bmp'],
+      'image/tiff': ['.tiff', '.tif'],
+      'image/webp': ['.webp']
     },
     maxSize: 10 * 1024 * 1024, // 10MB
     multiple: user?.tierLimits?.batchProcessing || false
@@ -131,6 +150,13 @@ const DocumentUpload = () => {
 
   const removeFile = (fileId) => {
     setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
+  };
+
+  // Handle scanned document upload success
+  const handleScannedUploadSuccess = (document) => {
+    setScannedDocumentId(document._id);
+    setShowScannedViewer(true);
+    showSuccess('Scanned document processed successfully!');
   };
 
   const formatFileSize = (bytes) => {
@@ -207,13 +233,13 @@ const DocumentUpload = () => {
             <input {...getInputProps()} />
             <UploadIcon sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
             <Typography variant="h6" gutterBottom>
-              {isDragActive ? 'Drop files here' : 'Drag & drop PDF files here'}
+              {isDragActive ? 'Drop files here' : 'Drag & drop documents here'}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              or click to browse files
+              or click to browse files (PDFs and images supported)
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Maximum file size: 10MB | Accepted format: PDF only
+              Maximum file size: 10MB | Accepted formats: PDF and images (JPG, PNG, GIF, BMP, TIFF, WebP)
               {user?.tierLimits?.batchProcessing && ' | Batch upload available'}
             </Typography>
           </Paper>

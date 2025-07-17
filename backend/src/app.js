@@ -71,7 +71,7 @@ if (process.env.NODE_ENV !== 'test') {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
-app.use('/api/scanned', scannedDocumentRoutes);
+app.use('/api/scanned-documents', scannedDocumentRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);

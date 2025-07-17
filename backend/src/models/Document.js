@@ -8,7 +8,9 @@ const documentSchema = new mongoose.Schema({
   },
   filename: {
     type: String,
-    required: true
+    required: function() {
+      return this.source !== 'scanned';
+    }
   },
   originalName: {
     type: String,
@@ -20,7 +22,9 @@ const documentSchema = new mongoose.Schema({
   },
   filePath: {
     type: String,
-    required: true
+    required: function() {
+      return this.source !== 'scanned';
+    }
   },
   mimeType: {
     type: String,
@@ -118,90 +122,72 @@ const documentSchema = new mongoose.Schema({
   reportPath: {
     type: String
   },
-  
-  // OCR and Image Processing Fields
-  isScannedDocument: {
-    type: Boolean,
-    default: false
+  // Enhanced fields for scanned document support
+  source: {
+    type: String,
+    enum: ['upload', 'scanned'],
+    default: 'upload'
   },
-  ocrData: {
-    extractedText: String,
-    confidence: {
-      type: Number,
-      min: 0,
-      max: 100
-    },
-    processingTime: Number,
+  scannedDocumentData: {
     imageQuality: {
-      score: {
-        type: Number,
-        min: 0,
-        max: 100
+      overallScore: Number,
+      resolution: {
+        width: Number,
+        height: Number,
+        megapixels: Number,
+        dpi: Number
       },
-      resolution: String,
-      pixelCount: Number,
-      density: String,
+      colorSpace: {
+        channels: Number,
+        colorSpace: String,
+        hasAlpha: Boolean
+      },
+      quality: {
+        sharpness: Number,
+        brightness: Number,
+        contrast: Number
+      },
       recommendations: [String]
     },
-    ocrMetadata: {
-      engine: String,
-      version: String,
+    ocrResults: {
+      extractedText: String,
+      confidence: Number,
       language: String,
-      pageSegmentation: String
+      processingTime: Number,
+      wordCount: Number,
+      lineCount: Number,
+      words: [{
+        text: String,
+        confidence: Number,
+        bbox: {
+          x0: Number,
+          y0: Number,
+          x1: Number,
+          y1: Number
+        }
+      }],
+      lines: [{
+        text: String,
+        confidence: Number,
+        bbox: {
+          x0: Number,
+          y0: Number,
+          x1: Number,
+          y1: Number
+        }
+      }]
     },
-    blocks: [{
-      text: String,
-      confidence: Number,
-      bbox: {
-        x0: Number,
-        y0: Number,
-        x1: Number,
-        y1: Number
-      }
+    qrCodes: [{
+      type: String,
+      data: String,
+      confidence: Number
     }],
-    words: [{
-      text: String,
-      confidence: Number,
-      bbox: {
-        x0: Number,
-        y0: Number,
-        x1: Number,
-        y1: Number
-      }
-    }]
-  },
-  
-  // Image file fields
-  originalImage: {
-    path: String,
-    size: Number,
-    mimetype: String,
-    dimensions: {
-      width: Number,
-      height: Number
-    }
-  },
-  processedImage: {
-    path: String,
-    enhancements: [String]
-  },
-  
-  // Processing flags
-  requiresManualReview: {
-    type: Boolean,
-    default: false
-  },
-  manualReviewReason: String,
-  userOcrCorrections: [{
-    originalText: String,
-    correctedText: String,
-    confidence: Number,
-    timestamp: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-
+    processingMetadata: {
+      processedAt: Date,
+      processingVersion: String
+    },
+    recommendations: [String]
+  }
 }, {
   timestamps: true
 });

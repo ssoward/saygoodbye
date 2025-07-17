@@ -5,11 +5,13 @@ const Tesseract = require('tesseract.js');
 const natural = require('natural');
 const axios = require('axios');
 const logger = require('../utils/logger');
+const imageProcessingService = require('./imageProcessingService');
 
 class DocumentValidationService {
   constructor() {
     this.stemmer = natural.PorterStemmer;
     this.tokenizer = new natural.WordTokenizer();
+    this.imageProcessor = imageProcessingService;
     
     // California Probate Code requirements
     this.requiredPhrases = [
@@ -35,8 +37,26 @@ class DocumentValidationService {
     try {
       logger.info(`Starting validation for document: ${filename}`);
       
-      // Extract text from PDF
-      const { text, confidence } = await this.extractTextFromPDF(filePath);
+      // Determine file type and extract text accordingly
+      const fileExtension = path.extname(filename).toLowerCase();
+      const isImage = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'].includes(fileExtension);
+      const isPdf = fileExtension === '.pdf';
+      
+      let text, confidence;
+      
+      if (isPdf) {
+        // Extract text from PDF
+        const result = await this.extractTextFromPDF(filePath);
+        text = result.text;
+        confidence = result.confidence;
+      } else if (isImage) {
+        // Extract text from image using OCR
+        const result = await this.extractTextFromImage(filePath);
+        text = result.text;
+        confidence = result.confidence;
+      } else {
+        throw new Error('Unsupported file format. Please upload a PDF or image file.');
+      }
       
       if (!text || text.trim().length === 0) {
         throw new Error('No text could be extracted from the document');
@@ -95,6 +115,34 @@ class DocumentValidationService {
     } catch (error) {
       logger.error('Text extraction error:', error);
       throw error;
+    }
+  }
+
+  async extractTextFromImage(filePath) {
+    try {
+      logger.info(`Starting OCR text extraction from image: ${filePath}`);
+      
+      // Read the image file as buffer
+      const fs = require('fs').promises;
+      const imageBuffer = await fs.readFile(filePath);
+      
+      // Use the image processing service for OCR
+      const ocrResult = await this.imageProcessor.extractTextFromImage(imageBuffer);
+      
+      if (!ocrResult || !ocrResult.success || !ocrResult.extractedText || ocrResult.extractedText.trim().length === 0) {
+        throw new Error('No text could be extracted from the image. The image may be unclear or contain no text.');
+      }
+      
+      logger.info(`Image OCR successful: ${ocrResult.extractedText.length} characters extracted with ${ocrResult.confidence}% confidence`);
+      
+      return {
+        text: ocrResult.extractedText,
+        confidence: ocrResult.confidence || 50 // Default to medium confidence if not provided
+      };
+      
+    } catch (error) {
+      logger.error('Image text extraction error:', error);
+      throw new Error(`Failed to extract text from image: ${error.message}`);
     }
   }
 
