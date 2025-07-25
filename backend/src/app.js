@@ -96,6 +96,23 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Say Goodbye POA Validation API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      documents: '/api/documents',
+      users: '/api/users',
+      admin: '/api/admin',
+      payments: '/api/payments'
+    }
+  });
+});
+
 // 404 handler
 app.use(notFound);
 

@@ -14,15 +14,17 @@ import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 
 // Dashboard Components
-import Dashboard from './components/Dashboard/Dashboard';
+import EnhancedUserDashboard from './components/Dashboard/EnhancedUserDashboard';
 import DocumentUpload from './components/Documents/DocumentUpload';
 import ScannedDocumentUpload from './components/ScannedDocumentUpload';
 import VirtualizedDocumentList from './components/Documents/VirtualizedDocumentList';
+import DocumentLibrary from './components/Documents/DocumentLibrary';
 import DocumentDetails from './components/Documents/DocumentDetails';
 
 // User Components
 import Profile from './components/User/Profile';
 import Subscription from './components/User/Subscription';
+import SubscriptionPlans from './components/Subscription/SubscriptionPlans';
 
 // Admin Components
 import AdminDashboard from './components/Admin/AdminDashboard';
@@ -128,11 +130,13 @@ function App() {
             </ProtectedRoute>
           }>
             <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="dashboard" element={<EnhancedUserDashboard />} />
+            <Route path="validate" element={<DocumentUpload />} />
             
             {/* Document Routes */}
             <Route path="documents">
-              <Route index element={<VirtualizedDocumentList />} />
+              <Route index element={<DocumentLibrary />} />
+              <Route path="list" element={<VirtualizedDocumentList />} />
               <Route path="upload" element={<DocumentUpload />} />
               <Route path="scan" element={<ScannedDocumentUpload />} />
               <Route path=":id" element={<DocumentDetails />} />
@@ -140,7 +144,8 @@ function App() {
 
             {/* User Routes */}
             <Route path="profile" element={<Profile />} />
-            <Route path="subscription" element={<Subscription />} />
+            <Route path="subscription" element={<SubscriptionPlans />} />
+            <Route path="billing" element={<Subscription />} />
 
             {/* Admin Routes */}
             <Route path="admin" element={

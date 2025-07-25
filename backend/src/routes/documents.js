@@ -11,6 +11,7 @@ const { auth, checkValidationLimit, requireTier } = require('../middleware/auth'
 const documentValidationService = require('../services/documentValidation');
 const reportService = require('../services/reportGeneration');
 const cacheService = require('../services/cacheService');
+const paymentService = require('../services/paymentService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -90,6 +91,23 @@ router.post('/validate', [
       });
     }
 
+    // Check usage limits before processing
+    const usageCheck = await paymentService.canUserValidate(req.user);
+    if (!usageCheck.canValidate) {
+      // Clean up uploaded file
+      try {
+        await fs.unlink(req.file.path);
+      } catch (unlinkError) {
+        logger.warn('Failed to cleanup uploaded file:', unlinkError);
+      }
+      
+      return res.status(403).json({
+        error: 'Validation limit exceeded',
+        usage: usageCheck,
+        upgradeRequired: true
+      });
+    }
+
     const { caseId, notes, tags } = req.body;
 
     // Create document record
@@ -108,13 +126,18 @@ router.post('/validate', [
 
     await document.save();
 
+    // Increment usage counter for non-unlimited tiers
+    if (usageCheck.remaining !== -1) {
+      await paymentService.incrementValidationUsage(req.user._id);
+    }
+
     // Invalidate user's document cache
     await cacheService.invalidateUserDocuments(req.user._id);
 
     // Start validation process (async)
     processDocumentValidation(document._id, req.file.path, req.file.originalname, req.user._id);
 
-    logger.info(`Document uploaded for validation: ${req.file.originalname} by user ${req.user.email}`);
+    logger.info(`Document uploaded for validation: ${req.file.originalname} by user ${req.user.email} (usage: ${usageCheck.used + 1}/${usageCheck.limit === -1 ? 'unlimited' : usageCheck.limit})`);
 
     res.status(202).json({
       message: 'Document uploaded successfully and validation started',

@@ -1,10 +1,135 @@
 const express = require('express');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { auth } = require('../middleware/auth');
 const User = require('../models/User');
 const logger = require('../utils/logger');
+const paymentService = require('../services/paymentService');
 
 const router = express.Router();
+
+/**
+ * GET /api/payments/plans
+ * Get available subscription plans
+ */
+router.get('/plans', (req, res) => {
+  try {
+    const plans = paymentService.getSubscriptionPlans();
+    res.json({
+      success: true,
+      plans
+    });
+  } catch (error) {
+    logger.error('Error getting subscription plans:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve subscription plans'
+    });
+  }
+});
+
+/**
+ * POST /api/payments/create-checkout-session
+ * Create Stripe checkout session for subscription upgrade
+ */
+router.post('/create-checkout-session', auth, async (req, res) => {
+  try {
+    const { planType } = req.body;
+    const userId = req.user.id;
+
+    if (!planType || !['professional', 'enterprise'].includes(planType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid subscription plan'
+      });
+    }
+
+    // Check if user is already on this plan or higher
+    if (req.user.tier === planType || 
+        (req.user.tier === 'enterprise' && planType === 'professional')) {
+      return res.status(400).json({
+        success: false,
+        message: 'User is already on this plan or higher'
+      });
+    }
+
+    const successUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?session_id={CHECKOUT_SESSION_ID}&upgrade=success`;
+    const cancelUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?upgrade=canceled`;
+
+    const session = await paymentService.createCheckoutSession(
+      userId,
+      planType,
+      successUrl,
+      cancelUrl
+    );
+
+    res.json({
+      success: true,
+      sessionId: session.sessionId,
+      url: session.url
+    });
+
+  } catch (error) {
+    logger.error('Error creating checkout session:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/payments/usage
+ * Get user's current usage and limits
+ */
+router.get('/usage', auth, async (req, res) => {
+  try {
+    const user = req.user;
+    const usageInfo = await paymentService.canUserValidate(user);
+    
+    res.json({
+      success: true,
+      usage: usageInfo,
+      tier: user.tier,
+      subscriptionStatus: user.subscriptionStatus
+    });
+
+  } catch (error) {
+    logger.error('Error getting usage info:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve usage information'
+    });
+  }
+});
+
+/**
+ * POST /api/payments/webhook
+ * Handle Stripe webhook events (no auth required)
+ */
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    const signature = req.headers['stripe-signature'];
+    
+    if (!signature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing Stripe signature'
+      });
+    }
+
+    await paymentService.handleWebhook(req.body, signature);
+
+    res.json({ received: true });
+
+  } catch (error) {
+    logger.error('Webhook error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// Legacy routes (keeping for backward compatibility)
 
 // Create Stripe customer and setup subscription
 router.post('/create-subscription', auth, async (req, res) => {

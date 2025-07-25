@@ -108,12 +108,69 @@ class DocumentValidationService {
         logger.warn('PDF parsing failed:', pdfError.message);
       }
       
-      // For now, if PDF parsing fails, return error instead of trying OCR
-      // OCR on PDFs requires conversion to images first
-      throw new Error('PDF text extraction failed. This PDF may be scanned or image-based. OCR for PDFs is not yet implemented.');
+      // Try OCR on PDF by converting to images first
+      logger.info('PDF text extraction failed, attempting OCR conversion...');
+      try {
+        const ocrResult = await this.convertPdfToImageAndOCR(filePath);
+        if (ocrResult && ocrResult.text && ocrResult.text.trim().length > 0) {
+          logger.info(`PDF OCR successful: ${ocrResult.text.length} characters extracted`);
+          return {
+            text: ocrResult.text,
+            confidence: ocrResult.confidence || 75 // Medium-high confidence for PDF OCR
+          };
+        }
+      } catch (ocrError) {
+        logger.warn('PDF OCR failed:', ocrError.message);
+      }
+      
+      // If all methods fail, return error
+      throw new Error('PDF text extraction failed. This PDF may be scanned, image-based, or corrupted. Please try uploading as individual images.');
       
     } catch (error) {
       logger.error('Text extraction error:', error);
+      throw error;
+    }
+  }
+
+  async convertPdfToImageAndOCR(filePath) {
+    try {
+      const pdf2pic = require('pdf2pic');
+      const path = require('path');
+      const fs = require('fs').promises;
+      
+      // Convert first page of PDF to image
+      const convert = pdf2pic.fromPath(filePath, {
+        density: 300,           // High quality for better OCR
+        saveFilename: "temp",
+        savePath: path.dirname(filePath),
+        format: "png",
+        width: 2000,
+        height: 2000
+      });
+      
+      const convertedImage = await convert(1); // Convert first page
+      
+      if (!convertedImage || !convertedImage.path) {
+        throw new Error('Failed to convert PDF to image');
+      }
+      
+      // Read the converted image as buffer
+      const imageBuffer = await fs.readFile(convertedImage.path);
+      
+      // Use image processing service for OCR
+      const ocrResult = await this.imageProcessor.extractTextFromImage(imageBuffer);
+      
+      // Clean up temporary image file
+      try {
+        await fs.unlink(convertedImage.path);
+      } catch (cleanupError) {
+        logger.warn('Failed to cleanup temporary image:', cleanupError);
+      }
+      
+      return ocrResult;
+      
+    } catch (error) {
+      logger.error('PDF to image conversion error:', error);
       throw error;
     }
   }
