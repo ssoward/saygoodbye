@@ -102,6 +102,37 @@ router.get('/usage', auth, async (req, res) => {
 });
 
 /**
+ * GET /api/payments/subscription-status
+ * Get user's current subscription status and details
+ */
+router.get('/subscription-status', auth, async (req, res) => {
+  try {
+    const user = req.user;
+    const usageInfo = await paymentService.canUserValidate(user);
+    
+    res.json({
+      success: true,
+      subscription: {
+        tier: user.tier,
+        status: user.subscriptionStatus,
+        stripeCustomerId: user.stripeCustomerId,
+        stripeSubscriptionId: user.stripeSubscriptionId,
+        subscriptionEndDate: user.subscriptionEndDate,
+        isActive: user.subscriptionStatus === 'active',
+        usage: usageInfo
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error getting subscription status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve subscription status'
+    });
+  }
+});
+
+/**
  * POST /api/payments/webhook
  * Handle Stripe webhook events (no auth required)
  */

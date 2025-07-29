@@ -339,23 +339,53 @@ router.get('/stats', async (req, res) => {
       totalUsers,
       totalDocuments,
       activeSubscriptions,
-      recentDocuments
+      recentDocuments,
+      usersByTier,
+      documentsByStatus
     ] = await Promise.all([
       User.countDocuments(),
       Document.countDocuments(),
       User.countDocuments({ tier: { $ne: 'free' } }),
       Document.countDocuments({ 
         createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
-      })
+      }),
+      User.aggregate([
+        { $group: { _id: '$tier', count: { $sum: 1 } } },
+        { $project: { tier: '$_id', count: 1, _id: 0 } }
+      ]),
+      Document.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+        { $project: { status: '$_id', count: 1, _id: 0 } }
+      ])
     ]);
 
+    // Convert aggregation results to objects
+    const tiers = {};
+    usersByTier.forEach(item => {
+      tiers[item.tier || 'free'] = item.count;
+    });
+
+    const validationResults = {};
+    documentsByStatus.forEach(item => {
+      validationResults[item.status || 'unknown'] = item.count;
+    });
+
     const stats = {
-      totalUsers,
-      totalDocuments,
-      activeSubscriptions,
-      recentDocuments,
-      revenue: activeSubscriptions * 29, // Rough estimate for demo
-      validationSuccessRate: 85 // Demo value
+      users: {
+        total: totalUsers
+      },
+      documents: {
+        total: totalDocuments
+      },
+      revenue: {
+        total: activeSubscriptions * 29 // Rough estimate for demo
+      },
+      validations: {
+        total: totalDocuments,
+        successRate: totalDocuments > 0 ? Math.round((validationResults.completed || 0) / totalDocuments * 100) : 0
+      },
+      tiers,
+      validationResults
     };
 
     res.json(stats);

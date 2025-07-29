@@ -34,7 +34,14 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const { showError } = useNotification();
   
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({
+    users: { total: 0 },
+    documents: { total: 0 },
+    revenue: { total: 0 },
+    validations: { total: 0, successRate: 0 },
+    tiers: {},
+    validationResults: {}
+  });
   const [recentUsers, setRecentUsers] = useState([]);
   const [recentDocuments, setRecentDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,9 +61,16 @@ const AdminDashboard = () => {
         api.get('/admin/recent-documents')
       ]);
       
-      setStats(statsResponse.data);
-      setRecentUsers(usersResponse.data);
-      setRecentDocuments(documentsResponse.data);
+      setStats(statsResponse.data || {
+        users: { total: 0 },
+        documents: { total: 0 },
+        revenue: { total: 0 },
+        validations: { total: 0, successRate: 0 },
+        tiers: {},
+        validationResults: {}
+      });
+      setRecentUsers(usersResponse.data?.users || []);
+      setRecentDocuments(documentsResponse.data?.documents || []);
     } catch (error) {
       console.error('Error fetching admin data:', error);
       showError('Failed to load admin dashboard data');
@@ -215,7 +229,7 @@ const AdminDashboard = () => {
               
               {stats?.tiers && (
                 <Box>
-                  {Object.entries(stats.tiers).map(([tier, count]) => (
+                  {Object.entries(stats?.tiers || {}).map(([tier, count]) => (
                     <Box key={tier} sx={{ mb: 2 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                         <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
@@ -227,7 +241,7 @@ const AdminDashboard = () => {
                       </Box>
                       <LinearProgress
                         variant="determinate"
-                        value={(count / stats.users.total) * 100}
+                        value={stats?.users?.total ? (count / stats.users.total) * 100 : 0}
                         color={getTierColor(tier)}
                       />
                     </Box>
@@ -248,7 +262,7 @@ const AdminDashboard = () => {
               
               {stats?.validationResults && (
                 <Grid container spacing={2}>
-                  {Object.entries(stats.validationResults).map(([status, count]) => (
+                  {Object.entries(stats?.validationResults || {}).map(([status, count]) => (
                     <Grid item xs={6} key={status}>
                       <Paper sx={{ p: 2, textAlign: 'center' }}>
                         {getStatusIcon(status)}
